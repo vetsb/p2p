@@ -1,8 +1,7 @@
 import model.Connection
 import model.Node
-import java.io.DataInputStream
+import server.Server
 import java.io.DataOutputStream
-import java.io.EOFException
 import java.net.ServerSocket
 import java.net.Socket
 import kotlin.concurrent.thread
@@ -22,41 +21,14 @@ fun main() {
         socket = serverSocket
     )
 
+    val server = Server(serverSocket)
+
     thread {
-        handleServer()
+        server.run()
     }
 
     thread {
         handleClient()
-    }
-}
-
-fun handleServer() {
-    while (true) {
-        val socket = runCatching {
-            node.socket.accept()
-        }.getOrNull() ?: continue
-
-        val dataInputStream = DataInputStream(socket.getInputStream())
-
-        thread {
-            while (true) {
-                try {
-                    val messageSize = dataInputStream.readInt()
-                    val bytes = dataInputStream.readNBytes(messageSize)
-                    val line = String(bytes)
-
-                    println(line)
-                } catch (e: EOFException) {
-                    println("Socket ${socket.inetAddress.hostAddress}:${socket.localPort} went offline")
-                    e.printStackTrace()
-                    break
-                }
-            }
-
-            dataInputStream.close()
-            socket.close()
-        }
     }
 }
 

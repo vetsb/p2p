@@ -2,6 +2,7 @@ import model.Connection
 import model.Node
 import java.io.DataInputStream
 import java.io.DataOutputStream
+import java.io.EOFException
 import java.net.ServerSocket
 import java.net.Socket
 import kotlin.concurrent.thread
@@ -40,13 +41,15 @@ fun handleServer() {
 
         thread {
             while (true) {
-                val size = dataInputStream.readInt()
-                val bytes = dataInputStream.readNBytes(size)
-                val line = String(bytes)
+                try {
+                    val messageSize = dataInputStream.readInt()
+                    val bytes = dataInputStream.readNBytes(messageSize)
+                    val line = String(bytes)
 
-                println(line)
-
-                if (line == "quit") {
+                    println(line)
+                } catch (e: EOFException) {
+                    println("Socket ${socket.inetAddress.hostAddress}:${socket.localPort} went offline")
+                    e.printStackTrace()
                     break
                 }
             }
@@ -88,14 +91,7 @@ fun handleClient() {
                 node = node.copy(
                     connections = node.connections.toMutableMap().apply {
                         get(address)?.apply {
-                            val disconnectMessage = "quit".toByteArray()
-
-                            outputStream.apply {
-                                writeInt(disconnectMessage.size)
-                                write(disconnectMessage)
-                                close()
-                            }
-
+                            outputStream.close()
                             socket.close()
                         }
                         remove(address)

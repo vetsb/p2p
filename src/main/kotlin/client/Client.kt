@@ -5,10 +5,9 @@ import java.io.DataOutputStream
 import java.net.Socket
 
 class Client(
-    private val commandsReader: BufferedReader
+    private val commandsReader: BufferedReader,
+    private val clientConnectionsRepository: ClientConnectionsRepository,
 ) {
-
-    private val connections = mutableMapOf<String, ClientConnection>()
 
     fun run() {
         while (true) {
@@ -27,12 +26,12 @@ class Client(
                         DataOutputStream(newSocket.getOutputStream())
                     )
 
-                    connections[address] = clientConnection
+                    clientConnectionsRepository.put(address, clientConnection)
                 }
                 "/disconnect" -> {
                     val address = splited[1]
 
-                    connections.apply {
+                    clientConnectionsRepository.apply {
                         get(address)?.apply {
                             outputStream.close()
                             socket.close()
@@ -44,8 +43,8 @@ class Client(
                     val address = splited[1]
                     val message = splited[2].toByteArray()
 
-                    connections[address]?.let { connection ->
-                        connection.outputStream.apply {
+                    clientConnectionsRepository.get(address)?.let { clientConnection ->
+                        clientConnection.outputStream.apply {
                             writeInt(message.size)
                             write(message)
                         }

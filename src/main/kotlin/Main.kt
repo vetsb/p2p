@@ -1,4 +1,5 @@
 import client.Client
+import client.ClientConnectionsRepository
 import server.Server
 import java.net.ServerSocket
 import kotlin.concurrent.thread
@@ -12,7 +13,7 @@ fun main() {
     println("Сервер поднят на ${serverSocket.inetAddress.hostAddress}:$port")
 
     val server = Server(serverSocket)
-    val client = Client(System.`in`.bufferedReader())
+    val client = Client(System.`in`.bufferedReader(), ClientConnectionsRepository())
 
     thread {
         server.run()

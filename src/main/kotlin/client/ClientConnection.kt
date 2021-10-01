@@ -1,9 +1,9 @@
-package model
+package client
 
 import java.io.DataOutputStream
 import java.net.Socket
 
-data class Connection(
+data class ClientConnection(
     val socket: Socket,
     val outputStream: DataOutputStream,
 )

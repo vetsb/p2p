@@ -1,57 +1,34 @@
 package client
 
+import client.commands.ClientCommandHandler
+import client.commands.impl.UnknownCommandHandler
 import java.io.BufferedReader
-import java.io.DataOutputStream
-import java.net.Socket
 
 class Client(
     private val commandsReader: BufferedReader,
-    private val clientConnectionsRepository: ClientConnectionsRepository,
+    private val commandHandlers: List<ClientCommandHandler>,
 ) {
 
+    init {
+        val unknownCommandHandlerIndexedValue = commandHandlers.withIndex()
+            .firstOrNull { it.value is UnknownCommandHandler }
+
+        requireNotNull(unknownCommandHandlerIndexedValue) {
+            println("You must add unknown command handler")
+        }
+
+        require(unknownCommandHandlerIndexedValue.index == commandHandlers.lastIndex) {
+            println("Unknown command handler must be the last")
+        }
+    }
+
     fun run() {
-        while (true) {
-            val line = commandsReader.readLine()
-            val splited = line.split(" ")
+        loop@ while (true) {
+            val command = commandsReader.readLine()
 
-            when (splited[0]) {
-                "/connectTo" -> {
-                    val address = splited[1]
-                    val splitedAddress = address.split(":")
-
-                    val newSocket = Socket(splitedAddress[0], splitedAddress[1].toInt())
-
-                    val clientConnection = ClientConnection(
-                        newSocket,
-                        DataOutputStream(newSocket.getOutputStream())
-                    )
-
-                    clientConnectionsRepository.put(address, clientConnection)
-                }
-                "/disconnect" -> {
-                    val address = splited[1]
-
-                    clientConnectionsRepository.apply {
-                        get(address)?.apply {
-                            outputStream.close()
-                            socket.close()
-                        }
-                        remove(address)
-                    }
-                }
-                "/send" -> {
-                    val address = splited[1]
-                    val message = splited[2].toByteArray()
-
-                    clientConnectionsRepository.get(address)?.let { clientConnection ->
-                        clientConnection.outputStream.apply {
-                            writeInt(message.size)
-                            write(message)
-                        }
-                    }
-                }
-                else -> {
-                    println("Неизвестная команда")
+            for (i in commandHandlers.indices) {
+                if (commandHandlers[i].handle(command)) {
+                    continue@loop
                 }
             }
         }
